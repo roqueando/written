@@ -1,43 +1,101 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="light">
     <head>
         <meta charset="utf-8">
         <meta http-equiv="x-ua-compatible" content="ie=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>written - Linear Regression with Haskell (from scratch)</title>
+        <title>written - Regressão Linear com Haskell</title>
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.min.css" integrity="sha512-5Hs3dF2AEPkpNAR7UiOHba+lRSJNeM2ECkwxUIxC1Q/FLycGTbNapWXB4tP889k5T5Ju8fs4b1P5z/iB4nMfSQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@100..900&display=swap" rel="stylesheet">
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
         <link rel="stylesheet" href="../css/default.css" />
     </head>
     <body>
-        <header>
-            <div class="logo">
-                <a href="../">written by roqueando</a>
+        <section class="hero is-fullheight" class="background-color: #f1efe7 !important">
+            <div class="hero-body">
+                <div class="container has-text-centered">
+                    <div class="has-text-centered">
+                        <p class="title" style="font-family: 'League Spartan'; font-size: 110px; letter-spacing: -6px;">Regressão Linear com Haskell.</p>
+                        <p class="subtitle">
+                            <a href="../" class="button is-light is-warning">
+                                <span class="icon">
+                                    <i class="fa-solid fa-angle-left"></i>
+                                </span>
+                            </a>
+                            <a href="#" class="button is-dark">
+                                <span class="icon">
+                                    <i class="fa-brands fa-github-alt"></i>
+                                </span>
+                            </a>
+
+                            <a href="#" class="button is-dark is-info">
+                                <span class="icon">
+                                    <i class="fa-brands fa-bluesky"></i>
+                                </span>
+                            </a>
+
+                            <a href="#" class="button is-dark is-primary">
+                                <span class="icon">
+                                    <i class="fa-brands fa-twitter"></i>
+                                </span>
+                            </a>
+
+                            <a href="#" class="button is-dark is-info">
+                                <span class="icon">
+                                    <i class="fa-brands fa-linkedin-in"></i>
+                                </span>
+                            </a>
+                        </p>
+                        <div class="section">
+                            <article id="article">
+                                <section class="subtitle header has-text-left" style="font-family: 'League Spartan'; font-size: 34px">
+                                    November 22, 2024
+                                    
+                                    by roqueando
+                                    
+                                </section>
+                                <section class="has-text-left" style="font-size: 22px">
+                                    <div class="content">
+<p class="title is-2">
+Primeiro de tudo, o que é uma Regressão Linear?
+</p>
+<p>Bom, isso é uma técnica de estatística e econometria que consite em “modelar” uma relação entre duas váriaveis ou mais (conhecida também como regressão linear multivariada). Em outras palavras, é basicamente uma equação linear que nós aprendemos no ensino médio, junto a geometria, probabilidade e álgebra linear (onde mexemos com plano cartesiano e espaços 2D), e pensávamos que nunca iríamos utilizar isso futuramente.</p>
+<p>Lembra quando fazíamos equações de primeiro grau: <span class="math display"><em>f</em>(<em>x</em>) = <em>a</em><em>x</em> + <em>b</em></span>? Descobri que isso se chama também como equação da linha, ou equação linear, na qual traça uma linha num espaço 2D. Isso é bem utilizado em análise de dados e no campo científico! Dentro desse espaço essa linha pode cortar ou não alguns pontos de interesse que são chamados de <code>pontos de dados</code> (irei explicar em breve), e qualquer ação que você queira fazer com eles, você precisará de utilizar algebra linear.</p>
+<p>Sendo assim, a algebra linear é uma ferramenta poderosa para o entendimento da regressão linear. E com isso utilizaremos alguns pontos da mesma para explicar sobre esse algoritmo.</p>
+<br />
+<p class="title is-2">
+Destrinchando o algoritmo
+</p>
+<p>A explicação mais direta é que usamos a regressão para aprender os melhores <code>parâmetros</code>, que vão ser utilizados para traçar uma reta entre os <code>pontos de dados</code> e melhor separar eles. Essa separação nos dá vários resultados que podemos usar de diversas formas, uma delas é saber classificar os pontos de dados em qual “categoria” ou “classificação” eles possuem, outra para prever um certo número.</p>
+O algoritmo de regressão linear tem o mesmo formato que a equação linear, porém em notação matemática fica parecendo isso: <span class="math display"><em>f</em>(<em>x</em><sub><em>i</em></sub>) = <em>θ</em><sub>1</sub> + <em>θ</em><sub>2</sub><em>x</em><sub><em>i</em></sub></span>, o que não parece ser assustador, porém se fosse apenas isso seria fácil. Nessa equação temos alguns símbolos algébricos para que possamos entender e avançar para o próximo passo.
+<ul>
+<li>
+<span class="math display"><em>θ</em><sub>1</sub></span> e <span class="math display"><em>θ</em><sub>2</sub></span>: O nome desse símbolo é Theta e geralmente eles são o que chamamos de parâmetros, e embaixo deles são os índices, que nesse caso são apenas dois. Os parâmetros nesse contexto, diferentes dos argumentos e parâmetros de uma função de programação, são argumentos que não são manipuláveis pelo programador e sim pelo algoritmo em si.
+</li>
+<li>
+<span class="math display"><em>x</em><sub><em>i</em></sub></span>: Essa é nossa entrada, geralmente ele é um conjunto <span class="math display"><em>X</em><sub><em>n</em></sub></span> onde <span class="math display"><em>n</em></span> é a quantidade de amostras (dados) que esse conjunto tem.
+</li>
+</ul>
+<p>Com isso a temos ainda mais alguns passos, pois depois de você ter alguns parâmetros como você saberia que o algoritmo conseguiu chegar na resposta certa? Para isso temos o que chamamos de “Função de Custo” ou “Função de Perda”. Se você precisa saber a quanto falta para chegar de um ponto a outro você faz a diferença entre seu ponto atual e o ponto que você quer chegar!</p>
+<p>Assim, temos uma das formas mais comum para função de perda: <span class="math display">$$MSE = \frac{1}{n} \sum_{i=0}^{n}(Y_i -\hat{Y}_i)^2$$</span></p>
+<p>O <code>MSE</code> significa Minimum Squared Error (ou Erro Quadrático Médio) é uma função de perda que calcula a diferença entre <span class="math inline"><em>Y</em><sub><em>i</em></sub></span> (o valor certo que queremos alcançar) e <span class="math inline"><em>Ŷ</em><sub><em>i</em></sub></span> (valor que previmos)</p>
+<p class="title is-2">
+Otimizadores
+</p>
+<p>Além</p>
+</div>
+                                </section>
+                            </article>
+                        </div>
+
+                    </div>
+                </div>
             </div>
-            <nav>
-                <a href="../">Home</a>
-                <a href="../about.html">About</a>
-                <a href="../contact.html">Contact</a>
-                <a href="../archive.html">Archive</a>
-            </nav>
-        </header>
+        </section>
 
-        <main role="main">
-            <article>
-    <section class="header">
-        Posted on November 22, 2024
-        
-            by roqueando
-        
-    </section>
-    <section>
-        
-    </section>
-</article>
-
-        </main>
-
-        <footer>
-            Site proudly generated by
-            <a href="http://jaspervdj.be/hakyll">Hakyll</a>
-        </footer>
+        <script type="text/javascript" async src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.1/MathJax.js?config=TeX-MML-AM_CHTML">
+</script>
     </body>
 </html>
