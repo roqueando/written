@@ -2,9 +2,23 @@
 {-# LANGUAGE OverloadedStrings #-}
 import           Data.Monoid (mappend)
 import           Hakyll
+import Text.Pandoc.Highlighting (Style, breezeDark, zenburn, styleToCss)
+import Text.Pandoc.Options      (ReaderOptions (..), WriterOptions (..))
 
 
 --------------------------------------------------------------------------------
+pandocCodeStyle :: Style
+pandocCodeStyle = zenburn
+
+pandocCompiler' :: Compiler (Item String)
+pandocCompiler' =
+    pandocCompilerWith
+        defaultHakyllReaderOptions
+        defaultHakyllWriterOptions
+            {
+                writerHighlightStyle = Just pandocCodeStyle
+            }
+
 main :: IO ()
 main = hakyll $ do
     match "images/*" $ do
@@ -42,9 +56,14 @@ main = hakyll $ do
 
     match "posts/*" $ do
         route $ setExtension "html"
-        compile $ pandocCompiler
+        compile $ pandocCompiler'
             >>= loadAndApplyTemplate "templates/post.html"    postCtx
             >>= relativizeUrls
+
+    create ["css/syntax.css"] $ do
+        route idRoute
+        compile $ do
+            makeItem $ styleToCss pandocCodeStyle
 
     create ["archive.html"] $ do
         route idRoute

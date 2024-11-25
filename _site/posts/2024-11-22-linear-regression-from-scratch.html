@@ -11,6 +11,7 @@
         <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@100..900&display=swap" rel="stylesheet">
         <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
         <link rel="stylesheet" href="../css/default.css" />
+        <link rel="stylesheet" href="../css/syntax.css" />
     </head>
     <body>
         <section class="hero is-fullheight" class="background-color: #f1efe7 !important">
@@ -80,11 +81,40 @@ O algoritmo de regressão linear tem o mesmo formato que a equação linear, por
 </ul>
 <p>Com isso a temos ainda mais alguns passos, pois depois de você ter alguns parâmetros como você saberia que o algoritmo conseguiu chegar na resposta certa? Para isso temos o que chamamos de “Função de Custo” ou “Função de Perda”. Se você precisa saber a quanto falta para chegar de um ponto a outro você faz a diferença entre seu ponto atual e o ponto que você quer chegar!</p>
 <p>Assim, temos uma das formas mais comum para função de perda: <span class="math display">$$MSE = \frac{1}{n} \sum_{i=0}^{n}(Y_i -\hat{Y}_i)^2$$</span></p>
-<p>O <code>MSE</code> significa Minimum Squared Error (ou Erro Quadrático Médio) é uma função de perda que calcula a diferença entre <span class="math inline"><em>Y</em><sub><em>i</em></sub></span> (o valor certo que queremos alcançar) e <span class="math inline"><em>Ŷ</em><sub><em>i</em></sub></span> (valor que previmos)</p>
+<p>O <code>MSE</code> significa Minimum Squared Error (ou Erro Quadrático Médio) e é uma função de perda que calcula a diferença entre <span class="math inline"><em>Y</em><sub><em>i</em></sub></span> (o valor certo que queremos alcançar) e <span class="math inline"><em>Ŷ</em><sub><em>i</em></sub></span> (valor que previmos), após isso ele eleva ao quadrado, fazendo com que valores negativos “brilhem”, ou seja, apareçam mais, e é feito a somatória dos resultados.</p>
+<p>A razão para essas funções existirem é que no final ela nos da um número que diz o quão longe estamos do valor que queremos alcançar, então quanto mais perto de 0 menos estamos errando.</p>
 <p class="title is-2">
-Otimizadores
+Otimizando parâmetros
 </p>
-<p>Além</p>
+<p>Além de calcular a função de custo, temos os otimizadores, que vão dizer como podemos aproximar nossa perda até zero. Uma forma muito primitiva (ou mais simples para aprendizado) é o uso das derivadas:
+<span class="math display">$$f'(x) = \lim_{h \to 0} = \frac{f(x + h) - f(x)}{h}$$</span></p>
+<p>Derivadas por definição é taxa de variação instantânea em relação de <span class="math inline"><em>y</em></span> em relação a <span class="math inline"><em>x</em></span>, mas o que isso significa na real? Bom, é como descobrimos como atualizar nossos parâmetros. A Derivada serve para calcular a distância correta da função de custo e o resultado nós subtraimos do valor dos parâmetros <span class="math inline"><em>θ</em><sub>1</sub></span> e <span class="math inline"><em>θ</em><sub>2</sub></span> (pois estamos aproximando a zero).</p>
+<p class="title is-2">
+“Haskellizando” o algoritmo
+</p>
+<p>Agora que temos práticamente a base, vamos começar desenvolvendo alguns tipos. Haskell é bastante conhecido por sua extensibilidade para tipagem e como podemos modelar dados a partir deles (por isso o nome Tipos de Dados Algébricos).</p>
+<p>Num arquivo <code>Types.hs</code> teremos esse formato:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="kw">module</span> <span class="dt">Linha.Types</span> <span class="kw">where</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Coefficients</span> <span class="ot">=</span> <span class="dt">Coefficients</span> (<span class="dt">Float</span>, <span class="dt">Float</span>) <span class="kw">deriving</span> <span class="dt">Show</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">Datapoint</span> <span class="ot">=</span> <span class="dt">Datapoint</span> (<span class="dt">Float</span>, <span class="dt">Float</span>)</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="kw">newtype</span> <span class="dt">TrainingSet</span> <span class="ot">=</span> <span class="dt">TrainingSet</span> [<span class="dt">Datapoint</span>]</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="kw">data</span> <span class="ot">=</span> <span class="dt">LinearConfig</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    {<span class="ot"> learningRate ::</span> <span class="dt">Float</span>,</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="ot">      trainingSet ::</span> <span class="dt">TrainingSet</span>,</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="ot">      iterations ::</span> <span class="dt">Int</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    }</span></code></pre></div>
+<p>Alguns tipos são como alias para melhor leitura do código como: <code>Coefficients</code>, <code>Datapoint</code> e <code>TrainingSet</code>, que são os parâmetros, um ponto de dado e o conjunto de dados de treino. Uma boa prática em haskell é colocar a configuração de algum algoritmo dentro de um tipo de dado algébrico (o tipo <code>data</code>), pois conseguimos resgatar fácil esses valores depois.</p>
+O <code>LinearConfig</code> configura o que precisamos para de fato fazer esse algoritmo rodar:
+<ul>
+<li>
+<code>learningRate</code>: é a taxa de aprendizado, em muitas notações matemáticas ela pode está apresentada como a letra grega <span class="math inline"><em>α</em></span> (alpha). Essa taxa determina o quão devagar ou rápido queremos que nosso algoritmo aprenda. Aqui devemos ter cuidado pois um valor muito baixo faz com que o algoritmo demore a convergir, e um valor muito alto pode causar <code>overfitting</code>.
+</li>
+<li>
+<code>iterations</code>: por não se tratar de uma implementação
+</li>
+</ul>
 </div>
                                 </section>
                             </article>

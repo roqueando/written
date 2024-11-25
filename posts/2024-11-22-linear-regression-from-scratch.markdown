@@ -29,9 +29,44 @@ Com isso a temos ainda mais alguns passos, pois depois de você ter alguns parâ
 
 Assim, temos uma das formas mais comum para função de perda: $$MSE = \frac{1}{n} \sum_{i=0}^{n}(Y_i -\hat{Y}_i)^2$$
 
-O `MSE` significa Minimum Squared Error (ou Erro Quadrático Médio) é uma função de perda que calcula a diferença entre $Y_i$ (o valor certo que queremos alcançar) e $\hat{Y}_i$ (valor que previmos)
+O `MSE` significa Minimum Squared Error (ou Erro Quadrático Médio) e é uma função de perda que calcula a diferença entre $Y_i$ (o valor certo que queremos alcançar) e $\hat{Y}_i$ (valor que previmos), após isso ele eleva ao quadrado, fazendo com que valores negativos "brilhem", ou seja, apareçam mais, e é feito a somatória dos resultados.
 
-<p class="title is-2">Otimizadores</p>
+A razão para essas funções existirem é que no final ela nos da um número que diz o quão longe estamos do valor que queremos alcançar, então quanto mais perto de 0 menos estamos errando.
 
-Além 
+<p class="title is-2">Otimizando parâmetros</p>
+
+Além de calcular a função de custo, temos os otimizadores, que vão dizer como podemos aproximar nossa perda até zero. Uma forma muito primitiva (ou mais simples para aprendizado) é o uso das derivadas:
+$$f'(x) = \lim_{h \to 0} = \frac{f(x + h) - f(x)}{h}$$
+
+Derivadas por definição é taxa de variação instantânea em relação de $y$ em relação a $x$, mas o que isso significa na real? Bom, é como descobrimos como atualizar nossos parâmetros. A Derivada serve para calcular a distância correta da função de custo e o resultado nós subtraimos do valor dos parâmetros $\theta_1$ e $\theta_2$ (pois estamos aproximando a zero).
+
+<p class="title is-2">"Haskellizando" o algoritmo</p>
+
+Agora que temos práticamente a base, vamos começar desenvolvendo alguns tipos. Haskell é bastante conhecido por sua extensibilidade para tipagem e como podemos modelar dados a partir deles (por isso o nome Tipos de Dados Algébricos).
+
+Num arquivo `Types.hs` teremos esse formato:
+```haskell
+module Linha.Types where
+
+newtype Coefficients = Coefficients (Float, Float) deriving Show
+newtype Datapoint = Datapoint (Float, Float)
+newtype TrainingSet = TrainingSet [Datapoint]
+
+data = LinearConfig
+    { learningRate :: Float,
+      trainingSet :: TrainingSet,
+      iterations :: Int
+    }
+```
+Alguns tipos são como alias para melhor leitura do código como: `Coefficients`, `Datapoint` e `TrainingSet`, que são os parâmetros, um ponto de dado e o conjunto de dados de treino. Uma boa prática em haskell é colocar a configuração de algum algoritmo dentro de um tipo de dado algébrico (o tipo `data`), pois conseguimos resgatar fácil esses valores depois.
+
+O `LinearConfig` configura o que precisamos para de fato fazer esse algoritmo rodar:
+<ul>
+    <li>
+        `learningRate`: é a taxa de aprendizado, em muitas notações matemáticas ela pode está apresentada como a letra grega $\alpha$ (alpha). Essa taxa determina o quão devagar ou rápido queremos que nosso algoritmo aprenda. Aqui devemos ter cuidado pois um valor muito baixo faz com que o algoritmo demore a convergir, e um valor muito alto pode causar `overfitting`.
+    </li>
+    <li>
+        `iterations`: por não se tratar de uma implementação
+    </li>
+</ul>
 </div>
