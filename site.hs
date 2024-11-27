@@ -2,13 +2,13 @@
 {-# LANGUAGE OverloadedStrings #-}
 import           Data.Monoid (mappend)
 import           Hakyll
-import Text.Pandoc.Highlighting (Style, breezeDark, zenburn, styleToCss)
+import Text.Pandoc.Highlighting (Style, tango, styleToCss)
 import Text.Pandoc.Options      (ReaderOptions (..), WriterOptions (..))
 
 
 --------------------------------------------------------------------------------
 pandocCodeStyle :: Style
-pandocCodeStyle = zenburn
+pandocCodeStyle = tango
 
 pandocCompiler' :: Compiler (Item String)
 pandocCompiler' =

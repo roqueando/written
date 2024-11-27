@@ -104,7 +104,8 @@ Otimizando parâmetros
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>    {<span class="ot"> learningRate ::</span> <span class="dt">Float</span>,</span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="ot">      trainingSet ::</span> <span class="dt">TrainingSet</span>,</span>
 <span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="ot">      iterations ::</span> <span class="dt">Int</span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    }</span></code></pre></div>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>    }</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="kw">type</span> <span class="dt">LearningRate</span> <span class="ot">=</span> <span class="dt">Float</span></span></code></pre></div>
 <p>Alguns tipos são como alias para melhor leitura do código como: <code>Coefficients</code>, <code>Datapoint</code> e <code>TrainingSet</code>, que são os parâmetros, um ponto de dado e o conjunto de dados de treino. Uma boa prática em haskell é colocar a configuração de algum algoritmo dentro de um tipo de dado algébrico (o tipo <code>data</code>), pois conseguimos resgatar fácil esses valores depois.</p>
 O <code>LinearConfig</code> configura o que precisamos para de fato fazer esse algoritmo rodar:
 <ul>
@@ -112,9 +113,97 @@ O <code>LinearConfig</code> configura o que precisamos para de fato fazer esse a
 <code>learningRate</code>: é a taxa de aprendizado, em muitas notações matemáticas ela pode está apresentada como a letra grega <span class="math inline"><em>α</em></span> (alpha). Essa taxa determina o quão devagar ou rápido queremos que nosso algoritmo aprenda. Aqui devemos ter cuidado pois um valor muito baixo faz com que o algoritmo demore a convergir, e um valor muito alto pode causar <code>overfitting</code>.
 </li>
 <li>
-<code>iterations</code>: por não se tratar de uma implementação
+<code>iterations</code>: por não se tratar de uma implementação que é inteligente o suficiente para ter uma condição de parada, forçamos o algoritmo a seguir uma quantidade limitada de iterações. Normalmente há uma condição de parada interna para que não seja necessário colocar iterações.
 </li>
 </ul>
+<p class="title is-3">
+Parte 1: Função Wrapper
+</p>
+<p>Em Haskell a melhor forma de você expressar o código é ter um wrapper, uma função que vai ser o ponto de entrada. Aqui teremos uma função para executar de fato a regressão linear, chamada de <code>run</code>.</p>
+<div class="sourceCode" id="cb2"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ot">run ::</span> <span class="dt">Coefficients</span> <span class="ot">-&gt;</span> <span class="dt">LinearConfig</span> <span class="ot">-&gt;</span> <span class="dt">Coefficients</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>run cs (<span class="dt">LinearConfig</span> _ _ <span class="dv">0</span>) <span class="ot">=</span> cs</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>run cs linearConfig <span class="ot">=</span> run params newLinearConfig</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    <span class="kw">where</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>        params <span class="ot">=</span> newParams cs lr ts</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>        newLinearConfig <span class="ot">=</span> <span class="dt">LinearConfig</span> { learningRate <span class="ot">=</span> lr, trainingSet <span class="ot">=</span> ts, iterations <span class="ot">=</span> (it <span class="op">-</span> <span class="dv">1</span>) }</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>        (<span class="dt">LinearConfig</span> lr ts it) <span class="ot">=</span> linearConfig</span></code></pre></div>
+<p>Agora vamos por partes:</p>
+<div class="sourceCode" id="cb3"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ot">run ::</span> <span class="dt">Coefficients</span> <span class="ot">-&gt;</span> <span class="dt">LinearConfig</span> <span class="ot">-&gt;</span> <span class="dt">Coefficients</span></span></code></pre></div>
+<p>Isso define o que nossa função vai ser, ela recebe coeficientes (parâmetros), uma configuração do algoritmo e retorna novos coeficientes</p>
+<div class="sourceCode" id="cb4"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>run cs (<span class="dt">LinearConfig</span> _ _ <span class="dv">0</span>) <span class="ot">=</span> cs</span></code></pre></div>
+<p>Como sabemos o <code>LinearConfig</code> ele é composto por 3 atributos: learning rate, training set e iterations, em Haskell conseguimos pegar exatamente um valor por pattern matching e ver sobre uma condição de parada quando a iteração chega a 0, assim fazendo ele retornar os coeficientes gerados.</p>
+<div class="sourceCode" id="cb5"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>run cs linearConfig <span class="ot">=</span> run params newLinearConfig</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    <span class="kw">where</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        params <span class="ot">=</span> newParams cs lr ts</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>        newLinearConfig <span class="ot">=</span> <span class="dt">LinearConfig</span> { learningRate <span class="ot">=</span> lr, trainingSet <span class="ot">=</span> ts, iterations <span class="ot">=</span> (it <span class="op">-</span> <span class="dv">1</span>) }</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        (<span class="dt">LinearConfig</span> lr ts it) <span class="ot">=</span> linearConfig</span></code></pre></div>
+<p>Aqui vemos a primeira ideia de recursão, pois em Haskell não existe for loops. Então rodamos em recursividade passando parametros e uma nova configuração. Em Haskell podemos também definir dentro do corpo da função, novas funções e variaveis fazendo com que fique fácil atribuir quem faz o que.</p>
+<p>Portanto temos a variável <code>params</code> que consiste em criar novos parametros (veremos essa função mais adiante) passando os coeficientes atuais, o learning rate e o training set. Temos também a váriavel <code>newLinearConfig</code> que apenas gera uma nova configuração passando os atributos necessário e também diminuindo 1 passo na iteração atual, logo se for 10 iterações ela vira 9, e por fim temos apenas um pattern matching para usar os valores da configuração.</p>
+<p class="title is-3">
+Parte 2: Gerando novos parâmetros
+</p>
+<p>Agora precisamos para cada iteração gerar coeficientes novos, e para isso vamos também falar sobre função de custo para saber o quão longe do certo estamos.</p>
+<div class="sourceCode" id="cb6"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ot">newParams ::</span> <span class="dt">Coefficients</span> <span class="ot">-&gt;</span> <span class="dt">LearningRate</span> <span class="ot">-&gt;</span> <span class="dt">TrainingSet</span> <span class="ot">-&gt;</span> <span class="dt">Coefficients</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>newParams cs lr ts <span class="ot">=</span> <span class="dt">Coefficients</span> (newp0, newp1)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    <span class="kw">where</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>      deltas <span class="ot">=</span> <span class="fu">map</span> (calculateDelta cs) ts' <span class="co">-- mais adiante vamos ver sobre o delta</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>      newp0 <span class="ot">=</span> p0 <span class="op">-</span> lr <span class="op">*</span> avg deltas</span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>      newp1 <span class="ot">=</span> p1 <span class="op">-</span> lr <span class="op">*</span> avg adjustedDeltas</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>      adjustedDeltas <span class="ot">=</span> adjustDelta deltas ts'</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>      <span class="dt">Coefficients</span> (p0, p1) <span class="ot">=</span> cs</span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>      <span class="dt">TrainingSet</span> ts' <span class="ot">=</span> ts</span></code></pre></div>
+<p>Começamos com a tipagem que a função <code>newParams</code> espera: Coeficientes (novos ou randomizados de começo), a taxa de aprendizado, o conjunto de treino e irá retornar novos parâmetros.A parte interessante é na definição das variaveis que permite o cálculo de novos parâmetros</p>
+<div class="sourceCode" id="cb7"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>    <span class="kw">where</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>      deltas <span class="ot">=</span> <span class="fu">map</span> (calculateDelta cs) ts'</span></code></pre></div>
+<p>Primeiro definimos os deltas (a função de perda para sabermos a diferença entre <span class="math inline"><em>x</em></span> e <span class="math inline"><em>y</em></span>), que nada mais é que um map de uma lista passando o conjunto de treino e uma função para ser aplicada nessa lista. O quote nessa váriavel, é um padrão no Haskell e também na matemática quando temos variáveis com mesmo significado porém com conteúdos diferentes, nesse caso o <code>ts'</code> é quando faz o pattern matching para desacoplar o valor do construtor que definimos como tipo.</p>
+<div class="sourceCode" id="cb8"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>  newp0 <span class="ot">=</span> p0 <span class="op">-</span> lr <span class="op">*</span> avg deltas</span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  newp1 <span class="ot">=</span> p1 <span class="op">-</span> lr <span class="op">*</span> avg adjustedDeltas</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>  adjustedDeltas <span class="ot">=</span> adjustDelta deltas ts'</span></code></pre></div>
+<p>Aqui temos a criação dos novos coeficientes, perceba que o valor é atualizado com a taxa de aprendizado vezes a média dos deltas.</p>
+<div class="sourceCode" id="cb9"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ot">calculateDelta ::</span> <span class="dt">Coefficients</span> <span class="ot">-&gt;</span> <span class="dt">Datapoint</span> <span class="ot">-&gt;</span> <span class="dt">Float</span></span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>calculateDelta params dps <span class="ot">=</span> p0 <span class="op">+</span> p1 <span class="op">*</span> x <span class="op">-</span> y</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Coefficients</span> (p0, p1) <span class="ot">=</span> thetas</span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Datapoint</span> (x, y) <span class="ot">=</span> dps</span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a><span class="ot">adjustDelta ::</span> [<span class="dt">Float</span>] <span class="ot">-&gt;</span> [<span class="dt">Datapoint</span>] <span class="ot">-&gt;</span> [<span class="dt">Float</span>]</span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a>adjustDelta deltas datapoints <span class="ot">=</span> <span class="fu">map</span> (<span class="fu">uncurry</span> (<span class="op">*</span>)) zipped</span>
+<span id="cb9-9"><a href="#cb9-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb9-10"><a href="#cb9-10" aria-hidden="true" tabindex="-1"></a>    xs <span class="ot">=</span> <span class="fu">map</span> (\(<span class="dt">Datapoint</span> (x, _)) <span class="ot">-&gt;</span> x) datapoints</span>
+<span id="cb9-11"><a href="#cb9-11" aria-hidden="true" tabindex="-1"></a>    zipped <span class="ot">=</span> <span class="fu">zip</span> deltas xs</span></code></pre></div>
+<p>Aqui temos as duas funções que calculam o delta. Na regressão linear temos uma convenção sobre o segundo parâmetro que para ele não ter o mesmo valor do primeiro multiplicamos por <span class="math inline"><em>x</em><sup>(<em>i</em>)</sup></span> que resulta no valor do delta ajustado. Assim o calculo de delta comum é a execução da lógica <span class="math display"><em>θ</em><sub>0</sub> + <em>θ</em><sub>1</sub> * <em>x</em></span> subtraindo o <span class="math inline"><em>y</em></span>, e o valor ajustado é aplicar literalmente a multiplicação do <span class="math inline"><em>x</em><sup><em>i</em></sup></span>.</p>
+<div class="sourceCode" id="cb10"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ot">avg ::</span> [<span class="dt">Float</span>] <span class="ot">-&gt;</span> <span class="dt">Float</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>avg xs <span class="ot">=</span> <span class="fu">realToFrac</span> (<span class="fu">sum</span> xs) <span class="op">/</span> genericLength xs</span></code></pre></div>
+<p>Por fim temos a uma função auxiliar para cálculo da média de uma lista de floats.</p>
+<p class="title is-3">
+Parte 3: Rodando o algoritmo
+</p>
+<p>Uma das formas de rodar esse código poderia ser pelo próprio módulo Main do seu projeto (se você ficou perdido de como criar um projeto Haskell em breve faço um artigo sobre).</p>
+<div class="sourceCode" id="cb11"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ot">inference ::</span> <span class="dt">Float</span> <span class="ot">-&gt;</span> <span class="dt">Coefficients</span> <span class="ot">-&gt;</span> <span class="dt">Float</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>inference x cs <span class="ot">=</span> p0 <span class="op">+</span> p1 <span class="op">*</span> x</span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="kw">where</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="dt">Coefficients</span> (p0, p1) <span class="ot">=</span> cs</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="ot">main ::</span> <span class="dt">IO</span> ()</span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a>main <span class="ot">=</span> <span class="kw">do</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> params <span class="ot">=</span> <span class="dt">Coefficients</span> (<span class="dv">0</span>, <span class="dv">0</span>)</span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> lr <span class="ot">=</span> <span class="fl">0.3</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> ts <span class="ot">=</span> <span class="dt">TrainingSet</span> [<span class="dt">Datapoint</span> (<span class="dv">0</span>, <span class="dv">50</span>), <span class="dt">Datapoint</span> (<span class="dv">1</span>, <span class="dv">60</span>), <span class="dt">Datapoint</span> (<span class="dv">2</span>, <span class="dv">70</span>)]</span>
+<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> iters <span class="ot">=</span> <span class="dv">500</span></span>
+<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> lc <span class="ot">=</span> <span class="dt">LinearConfig</span> { learningRate <span class="ot">=</span> lr, trainingSet <span class="ot">=</span> ts, iterations <span class="ot">=</span> iters }</span>
+<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> cs <span class="ot">=</span> run params lc</span>
+<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a>  <span class="kw">let</span> found <span class="ot">=</span> inference <span class="dv">3</span> cs</span>
+<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> <span class="op">$</span> <span class="fu">show</span> cs</span>
+<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">print</span> <span class="op">$</span> <span class="fu">show</span> found</span></code></pre></div>
+<p>Primeiro definimos uma função de inferência, ou seja rodar o modelo usado passando um input qualquer e os coeficientes gerados pelo modelo. Após isso criamos um conjunto de treino que se você perceber, possui um padrão que queremos que o modelo reconheça: ao passar o número 0 retorne 50, ao passar 1, retorne 60.
+Então usamos a função de inferência junto aos novos coeficientes e printamos tanto os novos parâmetros quanto o resultado.</p>
+<pre><code>&gt; Coefficients (49.99999,10.000008)
+&gt; 80</code></pre>
+<p class="title is-2">
+Conclusão
+</p>
+<p>Com isso aprendemos que a base matemática te permite criar diversas coisas! Claro que esse foi um exemplo muito simples, mas alguns outros passos seriam aplicar isso em larga escala usando matrizes e vetores, ou aplicar redes neurais artificiais como perceptron usando bibliotecas como Tensorflow (que existe bindings para haskell!), são infinitas possibilidades.
+Até a próxima! O ṣeun!</p>
 </div>
                                 </section>
                             </article>

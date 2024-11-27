@@ -57,6 +57,7 @@ data = LinearConfig
       trainingSet :: TrainingSet,
       iterations :: Int
     }
+type LearningRate = Float
 ```
 Alguns tipos são como alias para melhor leitura do código como: `Coefficients`, `Datapoint` e `TrainingSet`, que são os parâmetros, um ponto de dado e o conjunto de dados de treino. Uma boa prática em haskell é colocar a configuração de algum algoritmo dentro de um tipo de dado algébrico (o tipo `data`), pois conseguimos resgatar fácil esses valores depois.
 
@@ -66,7 +67,133 @@ O `LinearConfig` configura o que precisamos para de fato fazer esse algoritmo ro
         `learningRate`: é a taxa de aprendizado, em muitas notações matemáticas ela pode está apresentada como a letra grega $\alpha$ (alpha). Essa taxa determina o quão devagar ou rápido queremos que nosso algoritmo aprenda. Aqui devemos ter cuidado pois um valor muito baixo faz com que o algoritmo demore a convergir, e um valor muito alto pode causar `overfitting`.
     </li>
     <li>
-        `iterations`: por não se tratar de uma implementação
+        `iterations`: por não se tratar de uma implementação que é inteligente o suficiente para ter uma condição de parada, forçamos o algoritmo a seguir uma quantidade limitada de iterações. Normalmente há uma condição de parada interna para que não seja necessário colocar iterações.
     </li>
 </ul>
+
+
+<p class="title is-3">Parte 1: Função Wrapper</p>
+
+Em Haskell a melhor forma de você expressar o código é ter um wrapper, uma função que vai ser o ponto de entrada. Aqui teremos uma função para executar de fato a regressão linear, chamada de `run`.
+```haskell
+run :: Coefficients -> LinearConfig -> Coefficients
+run cs (LinearConfig _ _ 0) = cs
+run cs linearConfig = run params newLinearConfig
+    where
+        params = newParams cs lr ts
+        newLinearConfig = LinearConfig { learningRate = lr, trainingSet = ts, iterations = (it - 1) }
+        (LinearConfig lr ts it) = linearConfig
+```
+
+Agora vamos por partes:
+```haskell
+run :: Coefficients -> LinearConfig -> Coefficients
+```
+Isso define o que nossa função vai ser, ela recebe coeficientes (parâmetros), uma configuração do algoritmo e retorna novos coeficientes
+
+```haskell
+run cs (LinearConfig _ _ 0) = cs
+```
+Como sabemos o `LinearConfig` ele é composto por 3 atributos: learning rate, training set e iterations, em Haskell conseguimos pegar exatamente um valor por pattern matching e ver sobre uma condição de parada quando a iteração chega a 0, assim fazendo ele retornar os coeficientes gerados.
+
+```haskell
+run cs linearConfig = run params newLinearConfig
+    where
+        params = newParams cs lr ts
+        newLinearConfig = LinearConfig { learningRate = lr, trainingSet = ts, iterations = (it - 1) }
+        (LinearConfig lr ts it) = linearConfig
+```
+Aqui vemos a primeira ideia de recursão, pois em Haskell não existe for loops. Então rodamos em recursividade passando parametros e uma nova configuração. Em Haskell podemos também definir dentro do corpo da função, novas funções e variaveis fazendo com que fique fácil atribuir quem faz o que.
+
+Portanto temos a variável `params` que consiste em criar novos parametros (veremos essa função mais adiante) passando os coeficientes atuais, o learning rate e o training set. Temos também a váriavel `newLinearConfig` que apenas gera uma nova configuração passando os atributos necessário e também diminuindo 1 passo na iteração atual, logo se for 10 iterações ela vira 9, e por fim temos apenas um pattern matching para usar os valores da configuração.
+
+<p class="title is-3">Parte 2: Gerando novos parâmetros</p>
+
+Agora precisamos para cada iteração gerar coeficientes novos, e para isso vamos também falar sobre função de custo para saber o quão longe do certo estamos.
+```haskell
+newParams :: Coefficients -> LearningRate -> TrainingSet -> Coefficients
+newParams cs lr ts = Coefficients (newp0, newp1)
+    where
+      deltas = map (calculateDelta cs) ts' -- mais adiante vamos ver sobre o delta
+      newp0 = p0 - lr * avg deltas
+      newp1 = p1 - lr * avg adjustedDeltas
+      adjustedDeltas = adjustDelta deltas ts'
+      Coefficients (p0, p1) = cs
+      TrainingSet ts' = ts
+```
+
+Começamos com a tipagem que a função `newParams` espera: Coeficientes (novos ou randomizados de começo), a taxa de aprendizado, o conjunto de treino e irá retornar novos parâmetros.A parte interessante é na definição das variaveis que permite o cálculo de novos parâmetros
+```haskell
+    where
+      deltas = map (calculateDelta cs) ts'
+```
+
+Primeiro definimos os deltas (a função de perda para sabermos a diferença entre $x$ e $y$), que nada mais é que um map de uma lista passando o conjunto de treino e uma função para ser aplicada nessa lista. O quote nessa váriavel, é um padrão no Haskell e também na matemática quando temos variáveis com mesmo significado porém com conteúdos diferentes, nesse caso o `ts'` é quando faz o pattern matching para desacoplar o valor do construtor que definimos como tipo.
+
+```haskell
+  newp0 = p0 - lr * avg deltas
+  newp1 = p1 - lr * avg adjustedDeltas
+  adjustedDeltas = adjustDelta deltas ts'
+```
+Aqui temos a criação dos novos coeficientes, perceba que o valor é atualizado com a taxa de aprendizado vezes a média dos deltas.
+
+```haskell
+calculateDelta :: Coefficients -> Datapoint -> Float
+calculateDelta params dps = p0 + p1 * x - y
+  where
+    Coefficients (p0, p1) = thetas
+    Datapoint (x, y) = dps
+
+adjustDelta :: [Float] -> [Datapoint] -> [Float]
+adjustDelta deltas datapoints = map (uncurry (*)) zipped
+  where
+    xs = map (\(Datapoint (x, _)) -> x) datapoints
+    zipped = zip deltas xs
+
+```
+
+Aqui temos as duas funções que calculam o delta. Na regressão linear temos uma convenção sobre o segundo parâmetro que para ele não ter o mesmo valor do primeiro multiplicamos por $x^(i)$ que resulta no valor do delta ajustado. Assim o calculo de delta comum é a execução da lógica $$\theta_0 + \theta_1 * x $$ subtraindo o $y$, e o valor ajustado é aplicar literalmente a multiplicação do $x^i$.
+
+```haskell
+avg :: [Float] -> Float
+avg xs = realToFrac (sum xs) / genericLength xs
+```
+Por fim temos a uma função auxiliar para cálculo da média de uma lista de floats.
+
+
+<p class="title is-3">Parte 3: Rodando o algoritmo</p>
+Uma das formas de rodar esse código poderia ser pelo próprio módulo Main do seu projeto (se você ficou perdido de como criar um projeto Haskell em breve faço um artigo sobre).
+
+```haskell
+inference :: Float -> Coefficients -> Float
+inference x cs = p0 + p1 * x
+  where
+    Coefficients (p0, p1) = cs
+
+main :: IO ()
+main = do
+  let params = Coefficients (0, 0)
+  let lr = 0.3
+  let ts = TrainingSet [Datapoint (0, 50), Datapoint (1, 60), Datapoint (2, 70)]
+  let iters = 500
+  let lc = LinearConfig { learningRate = lr, trainingSet = ts, iterations = iters }
+  let cs = run params lc
+  let found = inference 3 cs
+  print $ show cs
+  print $ show found
+```
+
+Primeiro definimos uma função de inferência, ou seja rodar o modelo usado passando um input qualquer e os coeficientes gerados pelo modelo. Após isso criamos um conjunto de treino que se você perceber, possui um padrão que queremos que o modelo reconheça: ao passar o número 0 retorne 50, ao passar 1, retorne 60.
+Então usamos a função de inferência junto aos novos coeficientes e printamos tanto os novos parâmetros quanto o resultado.
+
+```
+> Coefficients (49.99999,10.000008)
+> 80
+```
+
+
+<p class="title is-2">Conclusão</p>
+Com isso aprendemos que a base matemática te permite criar diversas coisas! Claro que esse foi um exemplo muito simples, mas alguns outros passos seriam aplicar isso em larga escala usando matrizes e vetores, ou aplicar redes neurais artificiais como perceptron usando bibliotecas como Tensorflow (que existe bindings para haskell!), são infinitas possibilidades.
+Até a próxima! O ṣeun!
+
 </div>
